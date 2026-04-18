@@ -558,16 +558,30 @@ function PanneauArbitreCombattant({ combattant, nom, scores, total, config, disp
   )
 }
 
+const initMemoire = () => {
+  try {
+    const mem = localStorage.getItem('tkd_state');
+    if (mem) return JSON.parse(mem);
+  } catch (e) {
+    console.error(e);
+  }
+  return etatInitial(CONFIG_INITIALE);
+}
+
 // ─── MAIN APP COMPONENT ────────────────────────────────────────────────────────
 export default function App() {
-  const [state, dispatch] = useReducer(reducer, undefined, () => etatInitial(CONFIG_INITIALE))
+  const [state, dispatch] = useReducer(reducer, undefined, initMemoire)
+  
+  useEffect(() => {
+    localStorage.setItem('tkd_state', JSON.stringify(state));
+  }, [state]);
   const [vue, setVue] = useState('arbitre') // 'public' | 'arbitre'
   const [estAdmin, setEstAdmin] = useState(false)
   const [mdp, setMdp] = useState('')
   const [erreurMdp, setErreurMdp] = useState(false)
   
   const [pinCode, setPinCode] = useState(null)
-  const [inputPin, setInputPin] = useState('')
+  const [inputPin, setInputPin] = useState(localStorage.getItem('tkd_public_pin') || '')
   const [peerStatus, setPeerStatus] = useState('Déconnecté')
   const [isLinked, setIsLinked] = useState(false)
   const connectionsRef = useRef([])
@@ -584,10 +598,14 @@ export default function App() {
   // Arbitre : Création du Host PeerJS
   useEffect(() => {
     if (isReferee) {
-      const newPin = Math.floor(1000 + Math.random() * 9000).toString();
-      setPinCode(newPin);
+      let savedPin = localStorage.getItem('tkd_admin_pin');
+      if (!savedPin) {
+        savedPin = Math.floor(1000 + Math.random() * 9000).toString();
+        localStorage.setItem('tkd_admin_pin', savedPin);
+      }
+      setPinCode(savedPin);
       
-      const peer = new Peer(`tkd-arbitre-${newPin}`);
+      const peer = new Peer(`tkd-arbitre-${savedPin}`);
       
       peer.on('open', () => setPeerStatus(`En attente (PIN: ${newPin})`));
       
@@ -615,14 +633,17 @@ export default function App() {
 
   // Public : Connexion à l'arbitre
   const connectToReferee = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!inputPin) return;
     
-    setPeerStatus('Connexion...');
+    localStorage.setItem('tkd_public_pin', inputPin);
+    
+    setPeerStatus('Connexion au serveur...');
     const peer = new Peer();
     
     peer.on('open', () => {
-      const conn = peer.connect(`tkd-arbitre-${inputPin}`);
+      setPeerStatus('Recherche Console...');
+      const conn = peer.connect(`tkd-arbitre-${inputPin}`, { reliable: true });
       
       conn.on('open', () => {
         setPeerStatus('Connecté');
@@ -639,6 +660,21 @@ export default function App() {
         setPeerStatus('Déconnecté');
         setIsLinked(false);
       });
+      
+      conn.on('error', (err) => {
+        setPeerStatus(`Erreur de connexion`);
+        setIsLinked(false);
+      });
+    });
+
+    peer.on('error', (err) => {
+      console.error(err);
+      if (err.type === 'peer-unavailable') {
+        setPeerStatus('Code PIN introuvable !');
+      } else {
+        setPeerStatus(`Erreur: ${err.type}`);
+      }
+      setIsLinked(false);
     });
   };
 
@@ -662,12 +698,17 @@ export default function App() {
     return () => clearInterval(intervalRef.current)
   }, [state.statut])
 
+  useEffect(() => {
+    if (localStorage.getItem('tkd_auth') === 'admin') setEstAdmin(true);
+  }, []);
+
   const handleLogin = (e) => {
     e.preventDefault();
     if (mdp === '2026') {
       setEstAdmin(true);
       setErreurMdp(false);
       setMdp('');
+      localStorage.setItem('tkd_auth', 'admin');
     } else {
       setErreurMdp(true);
       setMdp('');
@@ -698,29 +739,33 @@ export default function App() {
       {/* CONTENT WRAPPER */}
       <div className="pt-[52px]">
         {vue === 'public' && (
-          isLinked ? <VuePublique state={state} /> : (
-            <div className="min-h-[calc(100vh-52px)] bg-black flex items-center justify-center p-4">
-              <form onSubmit={connectToReferee} className="bg-white/10 p-8 rounded-3xl backdrop-blur-xl max-w-sm w-full text-center border border-white/20">
-                <div className="text-5xl mb-6">📡</div>
-                <h2 className="title-font text-3xl text-white mb-2">Associer l'écran</h2>
-                <p className="text-sm font-medium text-white/60 mb-8">Entrez le code PIN affiché sur la console arbitre.</p>
-                
-                <input 
-                  type="text" 
-                  value={inputPin} 
-                  onChange={e => setInputPin(e.target.value.replace(/\D/g,''))} 
-                  className="w-full px-4 py-4 rounded-xl border-2 border-white/20 bg-black/50 text-center text-5xl tracking-[0.3em] font-bold outline-none transition-colors mb-4 focus:border-blue-500 text-white placeholder-white/20"
-                  placeholder="PIN"
-                  maxLength={4}
-                  autoFocus
-                />
-                
-                <button type="submit" disabled={!inputPin} className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-all shadow-lg text-lg tracking-widest uppercase">
-                  Connecter
-                </button>
-              </form>
-            </div>
-          )
+          <div className="relative min-h-[calc(100vh-52px)]">
+            <VuePublique state={state} />
+            {!isLinked && (
+              <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-40">
+                <form onSubmit={connectToReferee} className="bg-white/10 p-8 rounded-3xl backdrop-blur-xl max-w-sm w-full text-center border border-white/20 shadow-2xl">
+                  <div className="text-5xl mb-6">{peerStatus === 'Connexion au serveur...' || peerStatus === 'Recherche Console...' ? '🔄' : '📡'}</div>
+                  <h2 className="title-font text-3xl text-white mb-2">Associer l'écran</h2>
+                  <p className="text-sm font-medium text-white/60 mb-8">Entrez le code PIN affiché sur la console arbitre.</p>
+                  
+                  <input 
+                    type="text" 
+                    value={inputPin} 
+                    onChange={e => { setInputPin(e.target.value.replace(/\D/g,'')); setPeerStatus('Déconnecté'); }} 
+                    className="w-full px-4 py-4 rounded-xl border-2 border-white/20 bg-black/50 text-center text-5xl tracking-[0.3em] font-bold outline-none transition-colors mb-4 focus:border-blue-500 text-white placeholder-white/20"
+                    placeholder="PIN"
+                    maxLength={4}
+                    autoFocus
+                  />
+                  
+                  <button type="submit" disabled={!inputPin || peerStatus.includes('...')} className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-all shadow-lg text-lg tracking-widest uppercase">
+                    Connecter
+                  </button>
+                  {peerStatus !== 'Déconnecté' && <p className="mt-4 text-white font-bold animate-pulse">{peerStatus}</p>}
+                </form>
+              </div>
+            )}
+          </div>
         )}
         
         {vue === 'arbitre' && !estAdmin && (
