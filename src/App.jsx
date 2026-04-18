@@ -326,7 +326,7 @@ function VueArbitre({ state, dispatch }) {
 
   const peutDemarrer   = statut === 'en_attente'
   const peutPauser     = statut === 'en_cours'
-  const peutReprendre  = statut === 'pause'
+  const peutReprendre  = statut === 'pause' && tempsRestant > 0
   const estTermine     = statut === 'terminé'
 
   const timerDanger = tempsRestant < 30 && statut === 'en_cours'
@@ -439,8 +439,12 @@ function VueArbitre({ state, dispatch }) {
           {peutPauser && <BoutonControle arbitre action={() => dispatch({ type: 'PAUSE' })} label="Mettre en Pause" icon="⏸" color="amber" />}
           {peutReprendre && <BoutonControle arbitre action={() => dispatch({ type: 'REPRENDRE' })} label="Reprendre le Timer" icon="▶" color="emerald" />}
           
-          {(statut === 'pause' || statut === 'en_cours') && roundActuel < config.nbRounds && (
-            <BoutonControle arbitre action={() => { if(window.confirm('Terminer ce round ?')) dispatch({ type: 'FIN_ROUND' }) }} label="Terminer le Round" icon="⏭" color="slate" />
+          {(statut === 'pause' || statut === 'en_cours') && tempsRestant === 0 && roundActuel < config.nbRounds && (
+            <BoutonControle arbitre action={() => dispatch({ type: 'FIN_ROUND' })} label="Passer au Round Suivant" icon="⏭" color="emerald" />
+          )}
+
+          {(statut === 'pause' || statut === 'en_cours') && tempsRestant > 0 && roundActuel < config.nbRounds && (
+            <BoutonControle arbitre action={() => { if(window.confirm('Terminer ce round en avance ?')) dispatch({ type: 'FIN_ROUND' }) }} label="Terminer le Round" icon="⏭" color="slate" />
           )}
           
           {(statut === 'en_cours' || statut === 'pause') && (
