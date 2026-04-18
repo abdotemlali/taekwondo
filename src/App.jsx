@@ -634,6 +634,8 @@ export default function App() {
     }
   }, [isReferee]);
 
+  const currentPeerRef = useRef(null);
+
   // Public : Connexion à l'arbitre
   const connectToReferee = (e) => {
     if (e) e.preventDefault();
@@ -641,13 +643,19 @@ export default function App() {
     
     localStorage.setItem('tkd_public_pin', inputPin);
     
+    if (currentPeerRef.current) {
+      currentPeerRef.current.destroy();
+    }
+    
     setPeerStatus('Connexion au serveur...');
     const peer = new Peer();
+    currentPeerRef.current = peer;
     
     const tryReconnect = () => {
       setPeerStatus('Reconnexion automatique...');
       setIsLinked(previouslyLinkedRef.current); // Keep true if it dropped, false if it never worked
       clearTimeout(reconnectTimerRef.current);
+      peer.destroy();
       reconnectTimerRef.current = setTimeout(() => {
         connectToReferee();
       }, 3000);
@@ -678,16 +686,18 @@ export default function App() {
       console.error(err);
       if (err.type === 'peer-unavailable') {
         if (previouslyLinkedRef.current) {
-           // Admin refreshed page! Auto-reconnect quietly
            tryReconnect();
         } else {
-           // Typed wrong code
            setPeerStatus('Code PIN introuvable !');
            setIsLinked(false);
+           peer.destroy();
         }
       } else {
         setPeerStatus(`Erreur: ${err.type}`);
-        if (!previouslyLinkedRef.current) setIsLinked(false);
+        if (!previouslyLinkedRef.current) {
+          setIsLinked(false);
+          peer.destroy();
+        }
       }
     });
   };
