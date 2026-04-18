@@ -583,7 +583,7 @@ export default function App() {
 
   // Arbitre : Création du Host PeerJS
   useEffect(() => {
-    if (isReferee && !pinCode) {
+    if (isReferee) {
       const newPin = Math.floor(1000 + Math.random() * 9000).toString();
       setPinCode(newPin);
       
@@ -611,7 +611,7 @@ export default function App() {
         connectionsRef.current = [];
       };
     }
-  }, [isReferee, pinCode]);
+  }, [isReferee]);
 
   // Public : Connexion à l'arbitre
   const connectToReferee = (e) => {
