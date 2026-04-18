@@ -444,8 +444,11 @@ function VueArbitre({ state, dispatch }) {
           )}
           
           {estTermine && (
-            <div className="font-bold text-lg px-6 py-3 bg-slate-100 rounded-xl border border-slate-200">
-               COMBAT TERMINÉ : {totalRouge > totalBleu ? `Victoire Rouge (${config.nomRouge})` : totalBleu > totalRouge ? `Victoire Bleu (${config.nomBleu})` : 'Égalité'}
+            <div className="flex items-center gap-4">
+              <div className="font-bold text-lg px-6 py-3 bg-slate-100 rounded-xl border border-slate-200">
+                 COMBAT TERMINÉ : {totalRouge > totalBleu ? `Victoire Rouge (${config.nomRouge})` : totalBleu > totalRouge ? `Victoire Bleu (${config.nomBleu})` : 'Égalité'}
+              </div>
+              <BoutonControle arbitre action={() => dispatch({ type: 'REINITIALISER' })} label="Lancer un autre combat" icon="🔄" color="emerald" />
             </div>
           )}
         </div>
