@@ -1,5 +1,5 @@
 import { useReducer, useEffect, useRef, useState } from 'react'
-import { supabase } from './supabase'
+import { Peer } from 'peerjs'
 
 // ─── INITIAL STATE ─────────────────────────────────────────────────────────────
 const CONFIG_INITIALE = {
@@ -565,7 +565,13 @@ export default function App() {
   const [estAdmin, setEstAdmin] = useState(false)
   const [mdp, setMdp] = useState('')
   const [erreurMdp, setErreurMdp] = useState(false)
-  const [channel, setChannel] = useState(null)
+  
+  const [pinCode, setPinCode] = useState(null)
+  const [inputPin, setInputPin] = useState('')
+  const [peerStatus, setPeerStatus] = useState('Déconnecté')
+  const [isLinked, setIsLinked] = useState(false)
+  const connectionsRef = useRef([])
+
   const intervalRef = useRef(null)
   
   const isReferee = vue === 'arbitre' && estAdmin;
@@ -575,41 +581,75 @@ export default function App() {
     stateRef.current = state;
   }, [state]);
 
-  // Initialisation du canal Supabase
+  // Arbitre : Création du Host PeerJS
   useEffect(() => {
-    const ch = supabase.channel('match-sync', {
-      config: { broadcast: { ack: false } }
-    });
-    setChannel(ch);
+    if (isReferee && !pinCode) {
+      const newPin = Math.floor(1000 + Math.random() * 9000).toString();
+      setPinCode(newPin);
+      
+      const peer = new Peer(`tkd-arbitre-${newPin}`);
+      
+      peer.on('open', () => setPeerStatus(`En attente (PIN: ${newPin})`));
+      
+      peer.on('connection', (conn) => {
+        connectionsRef.current.push(conn);
+        setPeerStatus(`${connectionsRef.current.length} écran(s) connecté(s)`);
+        
+        conn.on('open', () => {
+          conn.send({ type: 'SYNC_STATE', state: stateRef.current });
+        });
+        
+        conn.on('close', () => {
+          connectionsRef.current = connectionsRef.current.filter(c => c !== conn);
+          setPeerStatus(`${connectionsRef.current.length} écran(s) connecté(s)`);
+        });
+      });
+      
+      return () => {
+        peer.destroy();
+        setPinCode(null);
+        connectionsRef.current = [];
+      };
+    }
+  }, [isReferee, pinCode]);
 
-    if (isReferee) {
-      // Arbitre répond aux demandes de synchro des écrans publics
-      ch.on('broadcast', { event: 'request_sync' }, () => {
-        ch.send({ type: 'broadcast', event: 'state_update', payload: stateRef.current });
-      }).subscribe();
-    } else {
-      // Public écoute les mises à jour
-      ch.on('broadcast', { event: 'state_update' }, ({ payload }) => {
-        dispatch({ type: 'SYNC_STATE', state: payload });
-      }).subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          // Demande l'état actuel au moment de la connexion
-          ch.send({ type: 'broadcast', event: 'request_sync' });
+  // Public : Connexion à l'arbitre
+  const connectToReferee = (e) => {
+    e.preventDefault();
+    if (!inputPin) return;
+    
+    setPeerStatus('Connexion...');
+    const peer = new Peer();
+    
+    peer.on('open', () => {
+      const conn = peer.connect(`tkd-arbitre-${inputPin}`);
+      
+      conn.on('open', () => {
+        setPeerStatus('Connecté');
+        setIsLinked(true);
+      });
+      
+      conn.on('data', (data) => {
+        if (data.type === 'SYNC_STATE') {
+          dispatch({ type: 'SYNC_STATE', state: data.state });
         }
       });
-    }
-
-    return () => {
-      supabase.removeChannel(ch);
-    };
-  }, [isReferee]);
+      
+      conn.on('close', () => {
+        setPeerStatus('Déconnecté');
+        setIsLinked(false);
+      });
+    });
+  };
 
   // Arbitre envoie l'état à chaque modification locale
   useEffect(() => {
-    if (isReferee && channel) {
-      channel.send({ type: 'broadcast', event: 'state_update', payload: state }).catch(() => {});
+    if (isReferee && connectionsRef.current.length > 0) {
+      connectionsRef.current.forEach(conn => {
+        conn.send({ type: 'SYNC_STATE', state });
+      });
     }
-  }, [state, isReferee, channel]);
+  }, [state, isReferee]);
 
   useEffect(() => {
     if (state.statut === 'en_cours') {
@@ -640,6 +680,9 @@ export default function App() {
       <div className="fixed top-0 inset-x-0 h-[52px] bg-slate-900 z-50 flex items-center justify-between px-6 border-b border-black">
         <div className="flex items-center gap-2 text-slate-300 font-semibold tracking-widest text-xs uppercase">
           <span className="text-base">🥋</span> Taekwondo Pro Score
+          <span className="ml-4 px-2 py-1 rounded bg-slate-800 text-slate-400">
+            {isReferee && pinCode ? `📡 PIN: ${pinCode} | ` : ''}{peerStatus}
+          </span>
         </div>
         
         <div className="flex items-center gap-1 bg-slate-800 p-1 rounded-lg">
@@ -654,7 +697,31 @@ export default function App() {
 
       {/* CONTENT WRAPPER */}
       <div className="pt-[52px]">
-        {vue === 'public' && <VuePublique state={state} />}
+        {vue === 'public' && (
+          isLinked ? <VuePublique state={state} /> : (
+            <div className="min-h-[calc(100vh-52px)] bg-black flex items-center justify-center p-4">
+              <form onSubmit={connectToReferee} className="bg-white/10 p-8 rounded-3xl backdrop-blur-xl max-w-sm w-full text-center border border-white/20">
+                <div className="text-5xl mb-6">📡</div>
+                <h2 className="title-font text-3xl text-white mb-2">Associer l'écran</h2>
+                <p className="text-sm font-medium text-white/60 mb-8">Entrez le code PIN affiché sur la console arbitre.</p>
+                
+                <input 
+                  type="text" 
+                  value={inputPin} 
+                  onChange={e => setInputPin(e.target.value.replace(/\D/g,''))} 
+                  className="w-full px-4 py-4 rounded-xl border-2 border-white/20 bg-black/50 text-center text-5xl tracking-[0.3em] font-bold outline-none transition-colors mb-4 focus:border-blue-500 text-white placeholder-white/20"
+                  placeholder="PIN"
+                  maxLength={4}
+                  autoFocus
+                />
+                
+                <button type="submit" disabled={!inputPin} className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-4 rounded-xl transition-all shadow-lg text-lg tracking-widest uppercase">
+                  Connecter
+                </button>
+              </form>
+            </div>
+          )
+        )}
         
         {vue === 'arbitre' && !estAdmin && (
           <div className="min-h-[calc(100vh-52px)] bg-slate-50 flex items-center justify-center p-4">
