@@ -1,4 +1,5 @@
 import { useReducer, useEffect, useRef, useState } from 'react'
+import { supabase } from './supabase'
 
 // ─── INITIAL STATE ─────────────────────────────────────────────────────────────
 const CONFIG_INITIALE = {
@@ -92,6 +93,9 @@ function reducer(state, action) {
 
     case 'REINITIALISER':
       return etatInitial(state.config)
+      
+    case 'SYNC_STATE':
+      return { ...action.state }
 
     default:
       return state
@@ -561,7 +565,51 @@ export default function App() {
   const [estAdmin, setEstAdmin] = useState(false)
   const [mdp, setMdp] = useState('')
   const [erreurMdp, setErreurMdp] = useState(false)
+  const [channel, setChannel] = useState(null)
   const intervalRef = useRef(null)
+  
+  const isReferee = vue === 'arbitre' && estAdmin;
+  const stateRef = useRef(state);
+  
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  // Initialisation du canal Supabase
+  useEffect(() => {
+    const ch = supabase.channel('match-sync', {
+      config: { broadcast: { ack: false } }
+    });
+    setChannel(ch);
+
+    if (isReferee) {
+      // Arbitre répond aux demandes de synchro des écrans publics
+      ch.on('broadcast', { event: 'request_sync' }, () => {
+        ch.send({ type: 'broadcast', event: 'state_update', payload: stateRef.current });
+      }).subscribe();
+    } else {
+      // Public écoute les mises à jour
+      ch.on('broadcast', { event: 'state_update' }, ({ payload }) => {
+        dispatch({ type: 'SYNC_STATE', state: payload });
+      }).subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          // Demande l'état actuel au moment de la connexion
+          ch.send({ type: 'broadcast', event: 'request_sync' });
+        }
+      });
+    }
+
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [isReferee]);
+
+  // Arbitre envoie l'état à chaque modification locale
+  useEffect(() => {
+    if (isReferee && channel) {
+      channel.send({ type: 'broadcast', event: 'state_update', payload: state }).catch(() => {});
+    }
+  }, [state, isReferee, channel]);
 
   useEffect(() => {
     if (state.statut === 'en_cours') {
