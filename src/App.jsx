@@ -119,189 +119,150 @@ function etiquetteStatut(statut) {
   }
 }
 
-// ─── PUBLIC VIEW ──────────────────────────────────────────────────────────────
-function VuePublique({ state }) {
-  const { config, scores, roundActuel, statut, tempsRestant } = state
-  const totalRouge = calculerTotal(scores.rouge, config)
-  const totalBleu  = calculerTotal(scores.bleu, config)
-
-  const estTermine = statut === 'terminé'
-  const timerDanger = tempsRestant < 30 && statut === 'en_cours'
-
-  let vainqueur = null
-  if (estTermine) {
-    if (totalRouge > totalBleu) vainqueur = 'rouge'
-    else if (totalBleu > totalRouge) vainqueur = 'bleu'
-    else vainqueur = 'egalite'
-  }
-
-  return (
-    <div className="min-h-screen flex flex-col font-ui text-white bg-[#050505] overflow-hidden relative">
-      {/* Dynamic Background */}
-      <div className="absolute inset-0 z-0 opacity-40 pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-red-600 blur-[150px] opacity-20" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-600 blur-[150px] opacity-20" />
+// ─── PUBLIC VIEW ────────────────────────────────────────────────────  return (
+    <div className="h-full bg-black flex flex-col font-ui text-white overflow-hidden relative">
+      
+      {/* HEADER BAR (Like image) */}
+      <div className="h-[10%] min-h-[60px] bg-black border-b-[6px] border-[#333] flex items-center justify-between px-4 lg:px-8 z-20">
+         <div className="flex items-center gap-4 text-xl">
+           <span className="text-3xl">🥋</span>
+           <span className="font-bold tracking-widest text-[#fff] text-xs md:text-sm lg:text-base leading-tight">WORLD<br/>TAEKWONDO</span>
+         </div>
+         
+         <div className="text-lg md:text-2xl lg:text-4xl font-bold tracking-wider text-white/90 truncate mx-4">
+           MATCH OFFICIEL
+         </div>
+         
+         <div className="flex items-center gap-4">
+           {statut === 'en_cours' && <span className="pulse-dot w-3 h-3 rounded-full bg-red-500 block"></span>}
+           <span className="bg-slate-800 px-4 py-1.5 rounded-full border border-slate-600 shadow-inner title-font text-white/80">
+             {config.nbRounds} R
+           </span>
+         </div>
       </div>
 
-      {/* HEADER */}
-      <header className="relative z-10 flex flex-col md:flex-row justify-between items-center p-4 lg:p-8 gap-6 md:gap-0">
-        {/* Status Badge */}
-        <div className="flex items-center gap-3 px-6 py-3 rounded-full backdrop-blur-md" style={{
-          background: statut === 'en_cours' ? 'rgba(239,68,68,0.15)' :
-                      statut === 'pause' ? 'rgba(234,179,8,0.15)' :
-                      statut === 'terminé' ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.05)',
-          border: `1px solid ${
-            statut === 'en_cours' ? 'rgba(239,68,68,0.5)' :
-            statut === 'pause' ? 'rgba(234,179,8,0.5)' :
-            statut === 'terminé' ? 'rgba(168,85,247,0.5)' : 'rgba(255,255,255,0.1)'
-          }`,
-          color: statut === 'en_cours' ? '#fca5a5' :
-                 statut === 'pause' ? '#fde047' :
-                 statut === 'terminé' ? '#d8b4fe' : '#94a3b8'
-        }}>
-          {statut === 'en_cours' && <span className="pulse-dot w-2.5 h-2.5 rounded-full bg-red-500 block"></span>}
-          {etiquetteStatut(statut)}
+      {/* FULL BLEED CONTENT GRID */}
+      <main className="flex-1 w-full flex flex-row items-stretch z-10 relative">
+        
+        {/* BLUE SIDE (LEFT) */}
+        <div className="flex-1 w-1/3">
+          <ScoreCardPublique 
+            combattant="bleu"
+            nom={config.nomBleu}
+            scores={scores.bleu}
+            total={totalBleu}
+            isWinner={vainqueur === 'bleu'}
+          />
         </div>
 
-        {/* Round & Timer */}
-        <div className="flex items-center gap-6 lg:gap-10">
-          <div className="text-center">
-            <div className="text-xs lg:text-sm text-white/50 tracking-[0.2em] mb-1">ROUND</div>
-            <div className="title-font text-4xl lg:text-5xl leading-none text-white/90">
-              {roundActuel}<span className="text-white/40 text-2xl lg:text-3xl">/{config.nbRounds}</span>
-            </div>
+        {/* CENTER COLUMN (TIMER & ROUND) */}
+        <div className="w-[25%] lg:w-[25%] flex flex-col border-x-4 lg:border-x-8 border-black shadow-[0_0_50px_rgba(0,0,0,0.5)] z-20">
+          {/* TIMER (TOP HALF YELLOW) */}
+          <div className="flex-1 bg-[#ffea00] flex flex-col items-center justify-center p-2 relative">
+             <div className="absolute top-2 md:top-6 lg:top-8 text-black font-bold text-lg md:text-3xl lg:text-4xl capitalize tracking-tight">
+               {statut === 'pause' ? 'Time out' : statut === 'en_cours' ? 'Fight' : vainqueur ? 'Terminé' : 'Match'}
+             </div>
+             <div className={`text-black title-font text-6xl md:text-[7rem] lg:text-[11rem] leading-[0.8] tracking-tighter mt-4 md:mt-8 tabular-nums ${timerDanger ? 'animate-pulse text-red-600' : ''}`}>
+               {formaterTemps(tempsRestant)}
+             </div>
           </div>
-          <div className="text-center">
-            <div className="text-xs lg:text-sm text-white/50 tracking-[0.2em] mb-1">TEMPS</div>
-            <div className={`title-font text-5xl lg:text-6xl leading-none tracking-widest ${timerDanger ? 'timer-warning' : 'text-white'}`}>
-              {formaterTemps(tempsRestant)}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* MAIN SCORES */}
-      <main className="relative z-10 flex-1 grid grid-cols-[1fr_auto_1fr] items-center justify-center p-8 gap-8">
-        {/* RED SIDE */}
-        <ScoreCardPublique 
-          combattant="rouge"
-          nom={config.nomRouge}
-          scores={scores.rouge}
-          total={totalRouge}
-          config={config}
-          estVainqueur={vainqueur === 'rouge'}
-          estTermine={estTermine}
-        />
-
-        {/* CENTER VS & DETAILED STATS */}
-        <div className="flex flex-col items-center justify-center gap-6 lg:gap-8 w-full max-w-sm lg:w-64 order-first lg:order-none mb-4 lg:mb-0">
-          <div className="title-font text-5xl lg:text-7xl text-white/20 tracking-[0.2em] leading-none mb-0 lg:mb-4">VS</div>
           
-          <div className="w-full space-y-4">
-            {[
-              { label: 'TÊTE', valRouge: scores.rouge.tete * config.pointsTete, valBleu: scores.bleu.tete * config.pointsTete, pts: config.pointsTete },
-              { label: 'CORPS', valRouge: scores.rouge.corps * config.pointsCorps, valBleu: scores.bleu.corps * config.pointsCorps, pts: config.pointsCorps },
-              { label: 'JAMBES', valRouge: scores.rouge.jambes * config.pointsJambes, valBleu: scores.bleu.jambes * config.pointsJambes, pts: config.pointsJambes },
-            ].map(({ label, valRouge, valBleu, pts }) => {
-              const total = valRouge + valBleu;
-              const pctRouge = total > 0 ? (valRouge / total) * 100 : 50;
-              const pctBleu = total > 0 ? (valBleu / total) * 100 : 50;
-              return (
-                <div key={label} className="glass-panel p-4 rounded-2xl">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="score-font text-2xl font-bold text-red-500 w-8 text-left">{valRouge}</span>
-                    <div className="text-center">
-                      <div className="text-xs text-white/60 tracking-[0.2em] font-semibold">{label}</div>
-                      <div className="text-[10px] text-white/40 tracking-wider mt-0.5">{pts} PT{pts > 1 ? 'S' : ''}</div>
-                    </div>
-                    <span className="score-font text-2xl font-bold text-blue-500 w-8 text-right">{valBleu}</span>
-                  </div>
-                  <div className="flex h-2 rounded-full overflow-hidden bg-white/5 gap-1">
-                    <div className="bg-red-500/80 h-full transition-all duration-700 ease-out" style={{ width: `${pctRouge}%` }}></div>
-                    <div className="bg-blue-500/80 h-full transition-all duration-700 ease-out" style={{ width: `${pctBleu}%` }}></div>
-                  </div>
-                </div>
-              )
-            })}
+          {/* ROUND (BOTTOM HALF BLACK) */}
+          <div className="flex-1 bg-black flex flex-col items-center justify-center p-2 relative">
+             <div className="absolute top-2 md:top-6 lg:top-8 text-white font-bold text-lg md:text-3xl lg:text-4xl uppercase tracking-widest">
+               ROUND
+             </div>
+             <div className="text-white title-font text-6xl md:text-[7rem] lg:text-[10rem] leading-[0.8] mt-4 md:mt-8">
+               {roundActuel}
+             </div>
+             {/* Small accent dot from the image */}
+             <div className="absolute left-4 bottom-4 md:left-8 md:bottom-8 w-4 h-4 md:w-6 md:h-6 rounded-full border-[3px] border-[#1E90FF] shadow-[0_0_15px_#1E90FF]" />
           </div>
-
-          {estTermine && (
-            <div className="mt-4 p-6 rounded-3xl backdrop-blur-xl border border-white/10 w-full text-center animate-[slide-in_0.5s_ease-out]" style={{
-              background: vainqueur === 'egalite' ? 'rgba(168,85,247,0.1)' : 'rgba(250,204,21,0.1)',
-              borderColor: vainqueur === 'egalite' ? 'rgba(168,85,247,0.3)' : 'rgba(250,204,21,0.3)',
-            }}>
-              {vainqueur === 'egalite' ? (
-                <>
-                  <div className="text-purple-300/80 text-sm tracking-[0.2em] mb-2">RÉSULTAT</div>
-                  <div className="title-font text-5xl text-purple-400">ÉGALITÉ</div>
-                </>
-              ) : (
-                <>
-                  <div className="text-yellow-500/80 text-sm tracking-[0.2em] mb-2 font-bold">VAINQUEUR</div>
-                  <div className={`title-font text-4xl leading-tight mb-2 ${vainqueur === 'rouge' ? 'text-red-400' : 'text-blue-400'}`}>
-                    {vainqueur === 'rouge' ? config.nomRouge : config.nomBleu}
-                  </div>
-                  <div className="text-2xl mt-2 animate-bounce">🏆</div>
-                </>
-              )}
-            </div>
-          )}
         </div>
 
-        {/* BLUE SIDE */}
-        <ScoreCardPublique 
-          combattant="bleu"
-          nom={config.nomBleu}
-          scores={scores.bleu}
-          total={totalBleu}
-          config={config}
-          estVainqueur={vainqueur === 'bleu'}
-          estTermine={estTermine}
-        />
+        {/* RED SIDE (RIGHT) */}
+        <div className="flex-1 w-1/3">
+          <ScoreCardPublique 
+            combattant="rouge"
+            nom={config.nomRouge}
+            scores={scores.rouge}
+            total={totalRouge}
+            isWinner={vainqueur === 'rouge'}
+          />
+        </div>
+
       </main>
+
+      {/* OVERLAY EGALITE */}
+      {vainqueur === 'egalite' && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="title-font text-[10rem] text-purple-500 animate-pulse drop-shadow-[0_0_50px_rgba(168,85,247,0.5)]">ÉGALITÉ</div>
+        </div>
+      )}
     </div>
   )
 }
 
-function ScoreCardPublique({ combattant, nom, scores, total, config, estVainqueur, estTermine }) {
+function ScoreCardPublique({ combattant, nom, scores, total, isWinner }) {
   const isRed = combattant === 'rouge'
-  const isWinner = estTermine && estVainqueur
+  const bgColor = isRed ? 'bg-[#ca1917]' : 'bg-[#15349e]'
+  const bannerColor = isRed ? 'bg-[#980806]' : 'bg-[#0f216b]'
+  const abbr = isRed ? 'ROU' : 'BLE'
   
   return (
-    <div className={`relative flex flex-col items-center justify-center p-12 h-full rounded-[3rem] transition-all duration-1000 ${isWinner ? 'winner-glow' : ''}`} style={{
-      background: isRed 
-        ? 'linear-gradient(145deg, rgba(239,68,68,0.15) 0%, rgba(239,68,68,0.02) 100%)' 
-        : 'linear-gradient(145deg, rgba(59,130,246,0.15) 0%, rgba(59,130,246,0.02) 100%)',
-      border: `2px solid ${isRed ? 'rgba(239,68,68,0.2)' : 'rgba(59,130,246,0.2)'}`,
-      boxShadow: isWinner ? undefined : `inset 0 0 100px ${isRed ? 'rgba(239,68,68,0.05)' : 'rgba(59,130,246,0.05)'}`
-    }}>
-      {/* Corner Accents */}
-      <div className={`absolute top-0 left-0 w-16 h-16 border-t-4 border-l-4 rounded-tl-[3rem] opacity-50 ${isRed ? 'border-red-500' : 'border-blue-500'}`} />
-      <div className={`absolute bottom-0 right-0 w-16 h-16 border-b-4 border-r-4 rounded-br-[3rem] opacity-50 ${isRed ? 'border-red-500' : 'border-blue-500'}`} />
-
-      {/* Name - Minimum 6rem as requested */}
-      <h2 className={`title-font text-[min(12vw,6rem)] lg:text-[min(12vw,10rem)] leading-[0.8] text-center mb-6 lg:mb-8 break-words text-wrap w-full px-4 drop-shadow-2xl ${isRed ? 'text-red-50' : 'text-blue-50'}`} style={{ fontSize: 'clamp(3rem, 8vw, 10rem)' }}>
-        {nom}
-      </h2>
-
-      {/* Score Total - Minimum 6rem but realistically much larger for impact */}
-      <div className={`score-font font-bold leading-none tabular-nums transition-all duration-500 ${isWinner ? 'text-yellow-400 scale-110 drop-shadow-[0_0_50px_rgba(250,204,21,0.6)]' : isRed ? 'text-red-500 drop-shadow-[0_0_40px_rgba(239,68,68,0.5)]' : 'text-blue-500 drop-shadow-[0_0_40px_rgba(59,130,246,0.5)]'}`} 
-        style={{ fontSize: 'clamp(8rem, 25vw, 30rem)' }}>
-        {total}
+    <div className={`h-full w-full flex flex-col relative ${bgColor} ${isWinner ? 'winner-glow' : ''}`}>
+      {/* BANNER (TOP) */}
+      <div className={`h-[15%] min-h-[60px] w-full ${bannerColor} flex items-center justify-center px-4 shadow-xl z-20`}>
+         <div className="title-font text-3xl md:text-5xl lg:text-7xl text-white truncate drop-shadow-md">
+           {nom}
+         </div>
       </div>
 
-      {/* Detail Pills at bottom */}
-      <div className="absolute bottom-4 lg:bottom-8 left-4 lg:left-8 right-4 lg:right-8 flex justify-center gap-2 lg:gap-4 flex-wrap lg:flex-nowrap">
-        {[
-          { key: 'tete', lbl: 'Tête', val: scores.tete },
-          { key: 'corps', lbl: 'Corps', val: scores.corps },
-          { key: 'jambes', lbl: 'Jambes', val: scores.jambes }
-        ].map(z => (
-          <div key={z.key} className="glass-panel px-3 lg:px-6 py-2 lg:py-3 rounded-xl lg:rounded-2xl flex flex-col items-center min-w-[70px] lg:min-w-[100px]">
-             <div className="text-white/40 text-[10px] lg:text-xs tracking-widest uppercase mb-1">{z.lbl}</div>
-             <div className={`score-font text-xl lg:text-3xl font-bold ${isRed ? 'text-red-300' : 'text-blue-300'}`}>{z.val}</div>
-          </div>
-        ))}
+      {/* ABBREVIATION */}
+      <div className={`absolute top-[18%] title-font text-4xl md:text-6xl lg:text-7xl text-white/90 drop-shadow-md ${isRed ? 'right-4 lg:right-6' : 'left-4 lg:left-6'} tracking-wide z-10 hidden md:block`}>
+         {abbr}
+      </div>
+
+      {/* SCORE (CENTER) */}
+      <div className="flex-1 flex items-center justify-center relative -mt-[10%] lg:-mt-[5%]">
+         <div 
+           className="title-font font-bold leading-none text-white tabular-nums z-10"
+           style={{ 
+             fontSize: 'clamp(10rem, 30vw, 35rem)', 
+             textShadow: '8px 12px 0px rgba(0,0,0,0.2)' 
+           }}
+         >
+           {total}
+         </div>
+      </div>
+
+      {/* VIDEO ICON */}
+      <div className="absolute bottom-[20%] w-full flex justify-center opacity-70">
+         <svg width="48" height="48" className="md:w-[64px] md:h-[64px]" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5">
+           <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+         </svg>
+      </div>
+
+      {/* GAM-JEOM EQUIVALENT (Touches bottom corners) */}
+      <div className={`absolute bottom-4 flex flex-col items-center ${isRed ? 'right-4 lg:right-8' : 'left-4 lg:left-8'}`}>
+         <div className="text-white/80 font-bold text-[10px] md:text-sm tracking-[0.2em] mb-0 md:mb-1 uppercase">Touches</div>
+         <div className="text-white font-bold text-3xl md:text-5xl">{scores.tete + scores.corps + scores.jambes}</div>
+      </div>
+      
+      {/* DETAIL POINTS (Inside bottom) */}
+      <div className={`absolute bottom-4 flex gap-3 md:gap-6 opacity-60 ${isRed ? 'left-4 lg:left-8' : 'right-4 lg:right-8'}`}>
+        <div className="flex flex-col items-center">
+          <span className="text-[9px] md:text-xs font-bold uppercase tracking-widest text-[#ffea00]">Tête</span>
+          <span className="text-lg md:text-2xl font-bold">{scores.tete}</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <span className="text-[9px] md:text-xs font-bold uppercase tracking-widest text-[#ffea00]">Corps</span>
+          <span className="text-lg md:text-2xl font-bold">{scores.corps}</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <span className="text-[9px] md:text-xs font-bold uppercase tracking-widest text-[#ffea00]">Jam.</span>
+          <span className="text-lg md:text-2xl font-bold">{scores.jambes}</span>
+        </div>
       </div>
     </div>
   )
