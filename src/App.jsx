@@ -144,17 +144,9 @@ function VuePublique({ state }) {
       </div>
 
       {/* HEADER */}
-      <header className="relative z-10 flex items-center justify-between px-10 py-5 glass-panel border-b border-white/5">
-        <div className="flex items-center gap-4">
-          <div className="text-4xl">🥋</div>
-          <div>
-            <div className="title-font text-3xl tracking-[0.2em] text-white/90">TAEKWONDO</div>
-            <div className="text-sm text-white/50 tracking-widest font-medium">FINALES OFFICIELLES</div>
-          </div>
-        </div>
-
+      <header className="relative z-10 flex flex-col md:flex-row justify-between items-center p-4 lg:p-8 gap-6 md:gap-0">
         {/* Status Badge */}
-        <div className={`flex items-center gap-3 px-6 py-2.5 rounded-full text-base font-bold tracking-[0.15em] uppercase ${statut === 'en_cours' ? 'blink-border' : ''}`} style={{
+        <div className="flex items-center gap-3 px-6 py-3 rounded-full backdrop-blur-md" style={{
           background: statut === 'en_cours' ? 'rgba(239,68,68,0.15)' :
                       statut === 'pause' ? 'rgba(234,179,8,0.15)' :
                       statut === 'terminé' ? 'rgba(168,85,247,0.15)' : 'rgba(255,255,255,0.05)',
@@ -172,16 +164,16 @@ function VuePublique({ state }) {
         </div>
 
         {/* Round & Timer */}
-        <div className="flex items-center gap-10">
+        <div className="flex items-center gap-6 lg:gap-10">
           <div className="text-center">
-            <div className="text-sm text-white/50 tracking-[0.2em] mb-1">ROUND</div>
-            <div className="title-font text-5xl leading-none text-white/90">
-              {roundActuel}<span className="text-white/40 text-3xl">/{config.nbRounds}</span>
+            <div className="text-xs lg:text-sm text-white/50 tracking-[0.2em] mb-1">ROUND</div>
+            <div className="title-font text-4xl lg:text-5xl leading-none text-white/90">
+              {roundActuel}<span className="text-white/40 text-2xl lg:text-3xl">/{config.nbRounds}</span>
             </div>
           </div>
           <div className="text-center">
-            <div className="text-sm text-white/50 tracking-[0.2em] mb-1">TEMPS</div>
-            <div className={`title-font text-6xl leading-none tracking-widest ${timerDanger ? 'timer-warning' : 'text-white'}`}>
+            <div className="text-xs lg:text-sm text-white/50 tracking-[0.2em] mb-1">TEMPS</div>
+            <div className={`title-font text-5xl lg:text-6xl leading-none tracking-widest ${timerDanger ? 'timer-warning' : 'text-white'}`}>
               {formaterTemps(tempsRestant)}
             </div>
           </div>
@@ -202,8 +194,8 @@ function VuePublique({ state }) {
         />
 
         {/* CENTER VS & DETAILED STATS */}
-        <div className="flex flex-col items-center justify-center gap-8 w-64">
-          <div className="title-font text-7xl text-white/20 tracking-[0.2em] leading-none mb-4">VS</div>
+        <div className="flex flex-col items-center justify-center gap-6 lg:gap-8 w-full max-w-sm lg:w-64 order-first lg:order-none mb-4 lg:mb-0">
+          <div className="title-font text-5xl lg:text-7xl text-white/20 tracking-[0.2em] leading-none mb-0 lg:mb-4">VS</div>
           
           <div className="w-full space-y-4">
             {[
@@ -288,26 +280,26 @@ function ScoreCardPublique({ combattant, nom, scores, total, config, estVainqueu
       <div className={`absolute bottom-0 right-0 w-16 h-16 border-b-4 border-r-4 rounded-br-[3rem] opacity-50 ${isRed ? 'border-red-500' : 'border-blue-500'}`} />
 
       {/* Name - Minimum 6rem as requested */}
-      <h2 className={`title-font text-[min(12vw,10rem)] leading-[0.8] text-center mb-8 break-words text-wrap w-full px-4 drop-shadow-2xl ${isRed ? 'text-red-50' : 'text-blue-50'}`} style={{ fontSize: 'clamp(6rem, 8vw, 10rem)' }}>
+      <h2 className={`title-font text-[min(12vw,6rem)] lg:text-[min(12vw,10rem)] leading-[0.8] text-center mb-6 lg:mb-8 break-words text-wrap w-full px-4 drop-shadow-2xl ${isRed ? 'text-red-50' : 'text-blue-50'}`} style={{ fontSize: 'clamp(3rem, 8vw, 10rem)' }}>
         {nom}
       </h2>
 
       {/* Score Total - Minimum 6rem but realistically much larger for impact */}
       <div className={`score-font font-bold leading-none tabular-nums transition-all duration-500 ${isWinner ? 'text-yellow-400 scale-110 drop-shadow-[0_0_50px_rgba(250,204,21,0.6)]' : isRed ? 'text-red-500 drop-shadow-[0_0_40px_rgba(239,68,68,0.5)]' : 'text-blue-500 drop-shadow-[0_0_40px_rgba(59,130,246,0.5)]'}`} 
-        style={{ fontSize: 'clamp(18rem, 25vw, 30rem)' }}>
+        style={{ fontSize: 'clamp(8rem, 25vw, 30rem)' }}>
         {total}
       </div>
 
       {/* Detail Pills at bottom */}
-      <div className="absolute bottom-8 left-8 right-8 flex justify-center gap-4">
+      <div className="absolute bottom-4 lg:bottom-8 left-4 lg:left-8 right-4 lg:right-8 flex justify-center gap-2 lg:gap-4 flex-wrap lg:flex-nowrap">
         {[
           { key: 'tete', lbl: 'Tête', val: scores.tete },
           { key: 'corps', lbl: 'Corps', val: scores.corps },
           { key: 'jambes', lbl: 'Jambes', val: scores.jambes }
         ].map(z => (
-          <div key={z.key} className="glass-panel px-6 py-3 rounded-2xl flex flex-col items-center min-w-[100px]">
-             <div className="text-white/40 text-xs tracking-widest uppercase mb-1">{z.lbl}</div>
-             <div className={`score-font text-3xl font-bold ${isRed ? 'text-red-300' : 'text-blue-300'}`}>{z.val}</div>
+          <div key={z.key} className="glass-panel px-3 lg:px-6 py-2 lg:py-3 rounded-xl lg:rounded-2xl flex flex-col items-center min-w-[70px] lg:min-w-[100px]">
+             <div className="text-white/40 text-[10px] lg:text-xs tracking-widest uppercase mb-1">{z.lbl}</div>
+             <div className={`score-font text-xl lg:text-3xl font-bold ${isRed ? 'text-red-300' : 'text-blue-300'}`}>{z.val}</div>
           </div>
         ))}
       </div>
@@ -354,30 +346,30 @@ function VueArbitre({ state, dispatch }) {
   return (
     <div className="min-h-screen bg-slate-50 font-ui text-slate-900 pb-20">
       {/* HEADER */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm sticky top-[52px] z-40">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-slate-100 rounded-lg text-2xl">📱</div>
+      <header className="bg-white border-b border-slate-200 px-4 md:px-6 py-4 flex flex-col md:flex-row items-center justify-between shadow-sm sticky top-[52px] z-40 gap-4 md:gap-0">
+        <div className="flex flex-col md:flex-row items-center gap-3 w-full md:w-auto text-center md:text-left">
+          <div className="p-2 bg-slate-100 rounded-lg text-xl md:text-2xl hidden md:block">📱</div>
           <div>
-            <div className="title-font text-2xl tracking-wide text-slate-800 leading-none">PANNEAU ARBITRE</div>
-            <div className="text-xs font-semibold text-slate-500 uppercase tracking-widest mt-1">Contrôle du Combat</div>
+            <div className="title-font text-xl md:text-2xl tracking-wide text-slate-800 leading-none">PANNEAU ARBITRE</div>
+            <div className="text-[10px] md:text-xs font-semibold text-slate-500 uppercase tracking-widest mt-1">Contrôle du Combat</div>
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className={`px-6 py-2 rounded-2xl flex flex-col items-center justify-center transition-colors ${timerDanger ? 'bg-red-50 border border-red-200' : 'bg-slate-100'}`}>
-             <div className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">Round {roundActuel}/{config.nbRounds}</div>
-             <div className={`title-font text-4xl leading-none mt-1 ${timerDanger ? 'text-red-600 animate-pulse' : 'text-slate-800'}`}>
+        <div className="flex items-center justify-center gap-4 md:gap-6 w-full md:w-auto">
+          <div className={`px-4 md:px-6 py-2 rounded-2xl flex flex-col items-center justify-center transition-colors ${timerDanger ? 'bg-red-50 border border-red-200' : 'bg-slate-100'}`}>
+             <div className="text-[9px] md:text-[10px] font-bold text-slate-500 tracking-widest uppercase">Round {roundActuel}/{config.nbRounds}</div>
+             <div className={`title-font text-3xl md:text-4xl leading-none mt-1 ${timerDanger ? 'text-red-600 animate-pulse' : 'text-slate-800'}`}>
                {formaterTemps(tempsRestant)}
              </div>
           </div>
 
-          <div className={`px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest flex items-center gap-2 ${
+          <div className={`px-3 md:px-4 py-1.5 md:py-2 rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest flex items-center gap-2 ${
             statut === 'en_cours' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' :
             statut === 'pause' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
             statut === 'terminé' ? 'bg-purple-100 text-purple-700 border border-purple-200' :
             'bg-slate-100 text-slate-600 border border-slate-200'
           }`}>
-             {statut === 'en_cours' && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>}
+             {statut === 'en_cours' && <span className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-emerald-500 animate-pulse"></span>}
              {etiquetteStatut(statut)}
           </div>
         </div>
@@ -403,7 +395,7 @@ function VueArbitre({ state, dispatch }) {
               </button>
             </div>
             
-            <div className="grid grid-cols-2 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
               <div className="space-y-4 p-5 bg-slate-50 rounded-2xl border border-slate-100">
                 <h3 className="text-xs font-bold tracking-widest text-slate-400 uppercase mb-2">Général</h3>
                 <InputGroup label="Nom Combattant Rouge" type="text" value={configLocale.nomRouge} onChange={v => handleConfig('nomRouge', v)} activeColor="border-red-400" />
@@ -461,7 +453,7 @@ function VueArbitre({ state, dispatch }) {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <PanneauArbitreCombattant 
             combattant="rouge"
             nom={config.nomRouge}
@@ -519,39 +511,39 @@ function PanneauArbitreCombattant({ combattant, nom, scores, total, config, disp
   ]
 
   return (
-    <div className={`rounded-[2rem] p-8 border-4 bg-white shadow-xl ${isRed ? 'border-red-100' : 'border-blue-100'}`}>
-      <div className="flex justify-between items-start mb-8 pb-6 border-b border-slate-100">
+    <div className={`rounded-[2rem] p-4 lg:p-8 border-4 bg-white shadow-xl ${isRed ? 'border-red-100' : 'border-blue-100'}`}>
+      <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start mb-6 lg:mb-8 pb-4 lg:pb-6 border-b border-slate-100 gap-4 sm:gap-0 text-center sm:text-left">
         <div>
-          <div className={`text-sm font-bold uppercase tracking-widest mb-2 ${isRed ? 'text-red-500' : 'text-blue-500'}`}>COIN {isRed?'ROUGE':'BLEU'}</div>
-          <div className="title-font text-5xl text-slate-800 leading-none">{nom}</div>
+          <div className={`text-xs lg:text-sm font-bold uppercase tracking-widest mb-1 lg:mb-2 ${isRed ? 'text-red-500' : 'text-blue-500'}`}>COIN {isRed?'ROUGE':'BLEU'}</div>
+          <div className="title-font text-4xl lg:text-5xl text-slate-800 leading-none">{nom}</div>
         </div>
-        <div className="text-right">
-          <div className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">SCORE TOTAL</div>
-          <div className={`score-font text-6xl font-bold leading-none ${isRed ? 'text-red-600':'text-blue-600'}`}>{total}</div>
+        <div className="text-center sm:text-right">
+          <div className="text-[10px] lg:text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">SCORE TOTAL</div>
+          <div className={`score-font text-5xl lg:text-6xl font-bold leading-none ${isRed ? 'text-red-600':'text-blue-600'}`}>{total}</div>
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4 lg:space-y-6">
         {zones.map(z => (
-          <div key={z.key} className={`flex items-center gap-4 p-4 rounded-3xl border-2 transition-colors ${isRed ? 'bg-red-50/50 border-red-100 hover:border-red-200':'bg-blue-50/50 border-blue-100 hover:border-blue-200'}`}>
+          <div key={z.key} className={`flex items-center justify-between lg:justify-start gap-2 lg:gap-4 p-3 lg:p-4 rounded-2xl lg:rounded-3xl border-2 transition-colors ${isRed ? 'bg-red-50/50 border-red-100 hover:border-red-200':'bg-blue-50/50 border-blue-100 hover:border-blue-200'}`}>
             <button 
               onClick={() => dispatch({ type: 'AJUSTER_SCORE', combattant, zone: z.key, delta: -1 })}
               disabled={!estActif || scores[z.key] === 0}
-              className={`w-16 h-16 shrink-0 rounded-2xl flex items-center justify-center font-bold text-3xl transition-transform active:scale-95 disabled:opacity-30 disabled:pointer-events-none shadow-sm ${isRed ? 'bg-white text-red-500 border-2 border-red-200 hover:bg-red-100' : 'bg-white text-blue-500 border-2 border-blue-200 hover:bg-blue-100'}`}
+              className={`w-12 h-12 lg:w-16 lg:h-16 shrink-0 rounded-xl lg:rounded-2xl flex items-center justify-center font-bold text-2xl lg:text-3xl transition-transform active:scale-95 disabled:opacity-30 disabled:pointer-events-none shadow-sm ${isRed ? 'bg-white text-red-500 border-2 border-red-200 hover:bg-red-100' : 'bg-white text-blue-500 border-2 border-blue-200 hover:bg-blue-100'}`}
             >
               −
             </button>
             
-            <div className="flex-1 flex flex-col items-center justify-center">
-              <div className="text-sm font-bold text-slate-500 uppercase tracking-widest">{z.label} {z.emoji}</div>
-              <div className="text-xs font-semibold text-slate-400 mt-1">{z.pts} pt{z.pts > 1 ? 's' : ''}/frappe</div>
-              <div className="score-font text-4xl font-bold mt-2 text-slate-800">{scores[z.key]} <span className="text-lg text-slate-400">touches</span></div>
+            <div className="flex-1 flex flex-col items-center justify-center min-w-[80px]">
+              <div className="text-[10px] lg:text-sm font-bold text-slate-500 uppercase tracking-widest text-center leading-tight">{z.label} {z.emoji}</div>
+              <div className="text-[10px] lg:text-xs font-semibold text-slate-400 mt-1 hidden sm:block">{z.pts} pt{z.pts > 1 ? 's' : ''}/frappe</div>
+              <div className="score-font text-2xl lg:text-4xl font-bold mt-1 lg:mt-2 text-slate-800">{scores[z.key]} <span className="text-xs lg:text-lg text-slate-400">touches</span></div>
             </div>
 
             <button 
               onClick={() => dispatch({ type: 'AJUSTER_SCORE', combattant, zone: z.key, delta: 1 })}
               disabled={!estActif}
-              className={`w-20 h-20 shrink-0 rounded-[1.5rem] flex items-center justify-center font-bold text-4xl transition-transform active:scale-90 disabled:opacity-30 disabled:pointer-events-none shadow-md ${isRed ? 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700' : 'bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700'}`}
+              className={`w-16 h-16 lg:w-20 lg:h-20 shrink-0 rounded-xl lg:rounded-[1.5rem] flex items-center justify-center font-bold text-3xl lg:text-4xl transition-transform active:scale-90 disabled:opacity-30 disabled:pointer-events-none shadow-md ${isRed ? 'bg-red-500 text-white hover:bg-red-600 active:bg-red-700' : 'bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700'}`}
             >
               +
             </button>
