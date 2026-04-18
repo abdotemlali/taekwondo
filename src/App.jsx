@@ -759,7 +759,7 @@ export default function App() {
       {/* CONTENT WRAPPER */}
       <div className="pt-[52px]">
         {vue === 'public' && (
-          <div className="relative min-h-[calc(100vh-52px)]">
+          <div className="relative h-[calc(100vh-52px)] overflow-hidden">
             <VuePublique state={state} />
             {!isLinked && (
               <div className="absolute inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-40">
