@@ -119,7 +119,23 @@ function etiquetteStatut(statut) {
   }
 }
 
-// ─── PUBLIC VIEW ────────────────────────────────────────────────────  return (
+// ─── PUBLIC VIEW ──────────────────────────────────────────────────────────────
+function VuePublique({ state }) {
+  const { config, scores, roundActuel, statut, tempsRestant } = state
+  const totalRouge = calculerTotal(scores.rouge, config)
+  const totalBleu  = calculerTotal(scores.bleu, config)
+
+  const estTermine = statut === 'terminé'
+  const timerDanger = tempsRestant < 30 && statut === 'en_cours'
+
+  let vainqueur = null
+  if (estTermine) {
+    if (totalRouge > totalBleu) vainqueur = 'rouge'
+    else if (totalBleu > totalRouge) vainqueur = 'bleu'
+    else vainqueur = 'egalite'
+  }
+
+  return (
     <div className="h-full bg-black flex flex-col font-ui text-white overflow-hidden relative">
       
       {/* HEADER BAR (Like image) */}
