@@ -595,6 +595,9 @@ export default function App() {
     stateRef.current = state;
   }, [state]);
 
+  const reconnectTimerRef = useRef(null);
+  const previouslyLinkedRef = useRef(false);
+
   // Arbitre : Création du Host PeerJS
   useEffect(() => {
     if (isReferee) {
@@ -607,7 +610,7 @@ export default function App() {
       
       const peer = new Peer(`tkd-arbitre-${savedPin}`);
       
-      peer.on('open', () => setPeerStatus(`En attente (PIN: ${newPin})`));
+      peer.on('open', () => setPeerStatus(`En attente (PIN: ${savedPin})`));
       
       peer.on('connection', (conn) => {
         connectionsRef.current.push(conn);
@@ -641,6 +644,15 @@ export default function App() {
     setPeerStatus('Connexion au serveur...');
     const peer = new Peer();
     
+    const tryReconnect = () => {
+      setPeerStatus('Reconnexion automatique...');
+      setIsLinked(previouslyLinkedRef.current); // Keep true if it dropped, false if it never worked
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = setTimeout(() => {
+        connectToReferee();
+      }, 3000);
+    };
+
     peer.on('open', () => {
       setPeerStatus('Recherche Console...');
       const conn = peer.connect(`tkd-arbitre-${inputPin}`, { reliable: true });
@@ -648,6 +660,8 @@ export default function App() {
       conn.on('open', () => {
         setPeerStatus('Connecté');
         setIsLinked(true);
+        previouslyLinkedRef.current = true;
+        clearTimeout(reconnectTimerRef.current);
       });
       
       conn.on('data', (data) => {
@@ -656,25 +670,25 @@ export default function App() {
         }
       });
       
-      conn.on('close', () => {
-        setPeerStatus('Déconnecté');
-        setIsLinked(false);
-      });
-      
-      conn.on('error', (err) => {
-        setPeerStatus(`Erreur de connexion`);
-        setIsLinked(false);
-      });
+      conn.on('close', tryReconnect);
+      conn.on('error', tryReconnect);
     });
 
     peer.on('error', (err) => {
       console.error(err);
       if (err.type === 'peer-unavailable') {
-        setPeerStatus('Code PIN introuvable !');
+        if (previouslyLinkedRef.current) {
+           // Admin refreshed page! Auto-reconnect quietly
+           tryReconnect();
+        } else {
+           // Typed wrong code
+           setPeerStatus('Code PIN introuvable !');
+           setIsLinked(false);
+        }
       } else {
         setPeerStatus(`Erreur: ${err.type}`);
+        if (!previouslyLinkedRef.current) setIsLinked(false);
       }
-      setIsLinked(false);
     });
   };
 
