@@ -682,7 +682,17 @@ export default function App() {
       }
       setPinCode(savedPin);
       
-      const peer = new Peer(`tkd-arbitre-${savedPin}`);
+      const peerConfig = {
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' }
+          ]
+        }
+      };
+
+      const peer = new Peer(`tkd-arbitre-${savedPin}`, peerConfig);
       
       peer.on('open', () => setPeerStatus(`En attente (PIN: ${savedPin})`));
       
@@ -698,6 +708,15 @@ export default function App() {
           connectionsRef.current = connectionsRef.current.filter(c => c !== conn);
           setPeerStatus(`${connectionsRef.current.length} écran(s) connecté(s)`);
         });
+
+        conn.on('error', (err) => {
+          console.error("Connection error:", err);
+        });
+      });
+
+      peer.on('error', (err) => {
+        console.error("Peer referee error:", err);
+        setPeerStatus('Erreur de réseau. Veuillez rafraîchir.');
       });
       
       return () => {
@@ -722,7 +741,17 @@ export default function App() {
     }
     
     setPeerStatus('Connexion au serveur...');
-    const peer = new Peer();
+    
+    const peerConfig = {
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' },
+          { urls: 'stun:stun2.l.google.com:19302' }
+        ]
+      }
+    };
+    const peer = new Peer(peerConfig);
     currentPeerRef.current = peer;
     
     const tryReconnect = () => {
