@@ -656,6 +656,7 @@ export default function App() {
   
   const [peerStatus, setPeerStatus] = useState('Déconnecté')
   const [isLinked, setIsLinked] = useState(false)
+  const intervalRef = useRef(null)
   const isReferee = vue === 'arbitre' && estAdmin;
   const stateRef = useRef(state);
   
