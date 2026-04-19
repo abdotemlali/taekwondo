@@ -117,6 +117,18 @@ function reducer(state, action) {
       }
     }
 
+    case 'MAJ_NOM': {
+      const { combattant, nom } = action
+      const nomConfigKey = combattant === 'rouge' ? 'nomRouge' : 'nomBleu'
+      return {
+        ...state,
+        config: {
+          ...state.config,
+          [nomConfigKey]: nom
+        }
+      }
+    }
+
     case 'APPLIQUER_CONFIG': {
       return {
         ...etatInitial(action.config),
@@ -245,10 +257,30 @@ function VuePublique({ state }) {
 
       </main>
 
-      {/* OVERLAY EGALITE */}
-      {vainqueur === 'egalite' && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-          <div className="title-font text-[10rem] text-purple-500 animate-pulse drop-shadow-[0_0_50px_rgba(168,85,247,0.5)]">ÉGALITÉ</div>
+      {/* OVERLAY FIN DE COMBAT */}
+      {estTermine && vainqueur && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center animate-winner-bg p-8">
+          {vainqueur === 'egalite' ? (
+             <div className="title-font text-[10rem] text-purple-500 animate-pulse drop-shadow-[0_0_50px_rgba(168,85,247,0.5)]">ÉGALITÉ</div>
+          ) : (
+            <div className={`relative flex flex-col items-center justify-center w-full max-w-5xl aspect-video md:aspect-[21/9] rounded-[4rem] shadow-[0_0_150px_rgba(0,0,0,0.8)] border-[8px] md:border-[16px] animate-winner-card overflow-hidden ${
+              vainqueur === 'rouge' ? 'bg-[#ca1917] border-[#ff4d4d]' : 'bg-[#15349e] border-[#4d88ff]'
+            }`}>
+               <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2)_0%,transparent_70%)] rounded-[4rem]" />
+               
+               <div className="text-white/80 font-bold tracking-[0.4em] md:tracking-[0.8em] text-xl md:text-3xl uppercase mb-2 md:mb-6 z-10 animate-pulse">
+                 Winner
+               </div>
+               
+               <div className="title-font text-[6rem] md:text-[12rem] lg:text-[16rem] leading-none text-white drop-shadow-[0_20px_50px_rgba(0,0,0,0.6)] z-10 text-center px-4 w-full truncate">
+                 {vainqueur === 'rouge' ? config.nomRouge : config.nomBleu}
+               </div>
+
+               <div className="flex gap-4 md:gap-8 mt-4 md:mt-8 z-10 text-5xl md:text-8xl">
+                  <span className="animate-[bounce_2s_infinite]" style={{ animationDelay: '0s' }}>🥇</span>
+               </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -486,6 +518,7 @@ function VueArbitre({ state, dispatch }) {
             config={config}
             dispatch={dispatch}
             estActif={!estTermine}
+            peutEditer={statut === 'en_attente' && roundActuel === 1}
           />
           <PanneauArbitreCombattant 
             combattant="bleu"
@@ -496,6 +529,7 @@ function VueArbitre({ state, dispatch }) {
             config={config}
             dispatch={dispatch}
             estActif={!estTermine}
+            peutEditer={statut === 'en_attente' && roundActuel === 1}
           />
         </div>
       </main>
@@ -527,7 +561,7 @@ function BoutonControle({ action, label, icon, color }) {
   )
 }
 
-function PanneauArbitreCombattant({ combattant, nom, scores, total, roundsGagnes, config, dispatch, estActif }) {
+function PanneauArbitreCombattant({ combattant, nom, scores, total, roundsGagnes, config, dispatch, estActif, peutEditer }) {
   const isRed = combattant === 'rouge'
   const zones = [
     { key: 'tete', label: 'Tête', emoji: '🥋', pts: config.pointsTete },
@@ -538,9 +572,19 @@ function PanneauArbitreCombattant({ combattant, nom, scores, total, roundsGagnes
   return (
     <div className={`rounded-[2rem] p-4 lg:p-8 border-4 bg-white shadow-xl ${isRed ? 'border-red-100' : 'border-blue-100'}`}>
       <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start mb-6 lg:mb-8 pb-4 lg:pb-6 border-b border-slate-100 gap-4 sm:gap-0 text-center sm:text-left">
-        <div>
+        <div className="w-full sm:w-auto flex flex-col items-center sm:items-start">
           <div className={`text-xs lg:text-sm font-bold uppercase tracking-widest mb-1 lg:mb-2 ${isRed ? 'text-red-500' : 'text-blue-500'}`}>COIN {isRed?'ROUGE':'BLEU'}</div>
-          <div className="title-font text-4xl lg:text-5xl text-slate-800 leading-none">{nom}</div>
+          {peutEditer ? (
+            <input 
+               type="text" 
+               value={nom} 
+               onChange={(e) => dispatch({ type: 'MAJ_NOM', combattant, nom: e.target.value })} 
+               className={`title-font text-3xl lg:text-4xl text-slate-800 leading-none bg-slate-50 border-2 rounded-xl px-4 py-2 w-full sm:w-[220px] outline-none transition-colors ${isRed ? 'focus:border-red-400 border-red-200' : 'focus:border-blue-400 border-blue-200'}`}
+               placeholder="Nom Combattant"
+            />
+          ) : (
+            <div className="title-font text-4xl lg:text-5xl text-slate-800 leading-none truncate max-w-[220px]">{nom}</div>
+          )}
         </div>
         <div className="flex gap-6 items-center">
           <div className="text-center sm:text-right border-r border-slate-200 pr-6">

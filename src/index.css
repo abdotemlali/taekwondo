@@ -44,6 +44,23 @@ body {
 }
 .winner-glow { animation: winner-glow 2s infinite; }
 
+@keyframes winner-slide-in {
+  0% { transform: scale(0.5) translateY(100px); opacity: 0; }
+  70% { transform: scale(1.05) translateY(-20px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+.animate-winner-card {
+  animation: winner-slide-in 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes winner-bg-fade {
+  0% { backdrop-filter: blur(0px); background: rgba(0,0,0,0); }
+  100% { backdrop-filter: blur(12px); background: rgba(0,0,0,0.85); }
+}
+.animate-winner-bg {
+  animation: winner-bg-fade 0.5s ease-out forwards;
+}
+
 .glass-panel {
   background: rgba(255, 255, 255, 0.02);
   backdrop-filter: blur(16px);
