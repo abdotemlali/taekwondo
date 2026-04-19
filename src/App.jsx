@@ -21,6 +21,10 @@ const etatInitial = (config = CONFIG_INITIALE) => ({
     rouge: { tete: 0, corps: 0, jambes: 0 },
     bleu:  { tete: 0, corps: 0, jambes: 0 },
   },
+  roundsGagnes: {
+    rouge: 0,
+    bleu: 0,
+  }
 })
 
 // ─── REDUCER ──────────────────────────────────────────────────────────────────
@@ -45,7 +49,7 @@ function reducer(state, action) {
       if (state.statut !== 'en_cours') return state
       if (state.tempsRestant <= 1) {
         if (state.roundActuel >= state.config.nbRounds) {
-          return { ...state, tempsRestant: 0, statut: 'terminé' }
+          return { ...state, tempsRestant: 0, statut: 'pause' } // Arbitre will finalize
         }
         return {
           ...state,
@@ -55,19 +59,47 @@ function reducer(state, action) {
       }
       return { ...state, tempsRestant: state.tempsRestant - 1 }
 
-    case 'FIN_ROUND':
+    case 'FIN_ROUND': {
+      const totalRouge = calculerTotal(state.scores.rouge, state.config)
+      const totalBleu = calculerTotal(state.scores.bleu, state.config)
+      
+      const rGagnes = { ...(state.roundsGagnes || {rouge:0, bleu:0}) }
+      if (totalRouge > totalBleu) rGagnes.rouge += 1
+      if (totalBleu > totalRouge) rGagnes.bleu += 1
+
+      const scVides = {
+        rouge: { tete: 0, corps: 0, jambes: 0 },
+        bleu:  { tete: 0, corps: 0, jambes: 0 },
+      }
+
       if (state.roundActuel >= state.config.nbRounds) {
-        return { ...state, statut: 'terminé', tempsRestant: 0 }
+        return { ...state, statut: 'terminé', tempsRestant: 0, roundsGagnes: rGagnes, scores: scVides }
       }
       return {
         ...state,
         roundActuel: state.roundActuel + 1,
         tempsRestant: state.config.dureeRound,
         statut: 'en_attente',
+        roundsGagnes: rGagnes,
+        scores: scVides,
       }
+    }
 
-    case 'FIN_COMBAT':
-      return { ...state, statut: 'terminé', tempsRestant: 0 }
+    case 'FIN_COMBAT': {
+      const totalR = calculerTotal(state.scores.rouge, state.config)
+      const totalB = calculerTotal(state.scores.bleu, state.config)
+      
+      const rGagnesF = { ...(state.roundsGagnes || {rouge:0, bleu:0}) }
+      if (totalR > totalB) rGagnesF.rouge += 1
+      if (totalB > totalR) rGagnesF.bleu += 1
+      
+      const scVidesF = {
+        rouge: { tete: 0, corps: 0, jambes: 0 },
+        bleu:  { tete: 0, corps: 0, jambes: 0 },
+      }
+      
+      return { ...state, statut: 'terminé', tempsRestant: 0, roundsGagnes: rGagnesF, scores: scVidesF }
+    }
 
     case 'AJUSTER_SCORE': {
       const { combattant, zone, delta } = action
@@ -130,8 +162,10 @@ function VuePublique({ state }) {
 
   let vainqueur = null
   if (estTermine) {
-    if (totalRouge > totalBleu) vainqueur = 'rouge'
-    else if (totalBleu > totalRouge) vainqueur = 'bleu'
+    const rgR = state.roundsGagnes?.rouge || 0
+    const rgB = state.roundsGagnes?.bleu || 0
+    if (rgR > rgB) vainqueur = 'rouge'
+    else if (rgB > rgR) vainqueur = 'bleu'
     else vainqueur = 'egalite'
   }
 
@@ -167,6 +201,7 @@ function VuePublique({ state }) {
             nom={config.nomBleu}
             scores={scores.bleu}
             total={totalBleu}
+            roundsGagnes={state.roundsGagnes?.bleu || 0}
             isWinner={vainqueur === 'bleu'}
           />
         </div>
@@ -203,6 +238,7 @@ function VuePublique({ state }) {
             nom={config.nomRouge}
             scores={scores.rouge}
             total={totalRouge}
+            roundsGagnes={state.roundsGagnes?.rouge || 0}
             isWinner={vainqueur === 'rouge'}
           />
         </div>
@@ -219,7 +255,7 @@ function VuePublique({ state }) {
   )
 }
 
-function ScoreCardPublique({ combattant, nom, scores, total, isWinner }) {
+function ScoreCardPublique({ combattant, nom, scores, total, roundsGagnes, isWinner }) {
   const isRed = combattant === 'rouge'
   const bgColor = isRed ? 'bg-[#ca1917]' : 'bg-[#15349e]'
   const bannerColor = isRed ? 'bg-[#980806]' : 'bg-[#0f216b]'
@@ -234,9 +270,15 @@ function ScoreCardPublique({ combattant, nom, scores, total, isWinner }) {
          </div>
       </div>
 
-      {/* ABBREVIATION */}
-      <div className={`absolute top-[18%] title-font text-4xl md:text-6xl lg:text-7xl text-white/90 drop-shadow-md ${isRed ? 'right-4 lg:right-6' : 'left-4 lg:left-6'} tracking-wide z-10 hidden md:block`}>
-         {abbr}
+      {/* ABBREVIATION & ROUNDS WON */}
+      <div className={`absolute top-[18%] flex items-center gap-4 ${isRed ? 'right-4 lg:right-6 flex-row-reverse' : 'left-4 lg:left-6 flex-row'} z-10 hidden md:flex`}>
+         <div className="title-font text-4xl md:text-6xl lg:text-7xl text-white/90 drop-shadow-md tracking-wide">
+           {abbr}
+         </div>
+         {/* Rounds won display (e.g. 2R) with Bright yellow context */}
+         <div className="bg-black/40 backdrop-blur-sm title-font text-[#ffea00] font-bold text-3xl lg:text-5xl pb-1 px-4 rounded-xl border border-white/10 shadow-lg">
+           {roundsGagnes} <span className="text-white/60 text-base lg:text-xl">R</span>
+         </div>
       </div>
 
       {/* SCORE (CENTER) */}
@@ -423,7 +465,11 @@ function VueArbitre({ state, dispatch }) {
           {estTermine && (
             <div className="flex items-center gap-4">
               <div className="font-bold text-lg px-6 py-3 bg-slate-100 rounded-xl border border-slate-200">
-                 COMBAT TERMINÉ : {totalRouge > totalBleu ? `Victoire Rouge (${config.nomRouge})` : totalBleu > totalRouge ? `Victoire Bleu (${config.nomBleu})` : 'Égalité'}
+                 {(() => {
+                   const rgR = state.roundsGagnes?.rouge || 0;
+                   const rgB = state.roundsGagnes?.bleu || 0;
+                   return `COMBAT TERMINÉ : ${rgR > rgB ? `Victoire Rouge (${config.nomRouge})` : rgB > rgR ? `Victoire Bleu (${config.nomBleu})` : 'Égalité'}`;
+                 })()}
               </div>
               <BoutonControle arbitre action={() => dispatch({ type: 'REINITIALISER' })} label="Lancer un autre combat" icon="🔄" color="emerald" />
             </div>
@@ -436,6 +482,7 @@ function VueArbitre({ state, dispatch }) {
             nom={config.nomRouge}
             scores={scores.rouge}
             total={totalRouge}
+            roundsGagnes={state.roundsGagnes?.rouge || 0}
             config={config}
             dispatch={dispatch}
             estActif={!estTermine}
@@ -445,6 +492,7 @@ function VueArbitre({ state, dispatch }) {
             nom={config.nomBleu}
             scores={scores.bleu}
             total={totalBleu}
+            roundsGagnes={state.roundsGagnes?.bleu || 0}
             config={config}
             dispatch={dispatch}
             estActif={!estTermine}
@@ -479,7 +527,7 @@ function BoutonControle({ action, label, icon, color }) {
   )
 }
 
-function PanneauArbitreCombattant({ combattant, nom, scores, total, config, dispatch, estActif }) {
+function PanneauArbitreCombattant({ combattant, nom, scores, total, roundsGagnes, config, dispatch, estActif }) {
   const isRed = combattant === 'rouge'
   const zones = [
     { key: 'tete', label: 'Tête', emoji: '🥋', pts: config.pointsTete },
@@ -494,9 +542,15 @@ function PanneauArbitreCombattant({ combattant, nom, scores, total, config, disp
           <div className={`text-xs lg:text-sm font-bold uppercase tracking-widest mb-1 lg:mb-2 ${isRed ? 'text-red-500' : 'text-blue-500'}`}>COIN {isRed?'ROUGE':'BLEU'}</div>
           <div className="title-font text-4xl lg:text-5xl text-slate-800 leading-none">{nom}</div>
         </div>
-        <div className="text-center sm:text-right">
-          <div className="text-[10px] lg:text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">SCORE TOTAL</div>
-          <div className={`score-font text-5xl lg:text-6xl font-bold leading-none ${isRed ? 'text-red-600':'text-blue-600'}`}>{total}</div>
+        <div className="flex gap-6 items-center">
+          <div className="text-center sm:text-right border-r border-slate-200 pr-6">
+            <div className="text-[10px] lg:text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">ROUNDS GAGNÉS</div>
+            <div className={`score-font text-4xl lg:text-5xl font-bold leading-none text-slate-700`}>{roundsGagnes}</div>
+          </div>
+          <div className="text-center sm:text-right">
+            <div className="text-[10px] lg:text-xs font-semibold uppercase tracking-widest text-slate-400 mb-1">SCORE ROUND</div>
+            <div className={`score-font text-5xl lg:text-6xl font-bold leading-none ${isRed ? 'text-red-600':'text-blue-600'}`}>{total}</div>
+          </div>
         </div>
       </div>
 
