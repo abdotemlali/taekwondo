@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:local": "concurrently \"vite --host\" \"node server.js\"",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
