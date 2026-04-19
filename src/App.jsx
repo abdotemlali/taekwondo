@@ -72,7 +72,10 @@ function reducer(state, action) {
         bleu:  { tete: 0, corps: 0, jambes: 0 },
       }
 
-      if (state.roundActuel >= state.config.nbRounds) {
+      const roundsRequis = Math.floor(state.config.nbRounds / 2) + 1
+      const victoireAnticipee = rGagnes.rouge >= roundsRequis || rGagnes.bleu >= roundsRequis
+
+      if (state.roundActuel >= state.config.nbRounds || victoireAnticipee) {
         return { ...state, statut: 'terminé', tempsRestant: 0, roundsGagnes: rGagnes, scores: scVides }
       }
       return {
